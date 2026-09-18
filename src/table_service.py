@@ -189,11 +189,21 @@ class TableService:
             for item_id in existing_ids:
                 if item_id not in seen:
                     reordered_ids.append(item_id)
+            case_clauses = []
+            parameters = []
             for position, item_id in enumerate(reordered_ids, start=1):
-                conn.execute(
-                    f"UPDATE {table_name} SET position = ? WHERE {id_column} = ? AND table_id = ?",
-                    (position, item_id, table_id),
-                )
+                case_clauses.append("WHEN ? THEN ?")
+                parameters.extend([item_id, position])
+            in_clause = ", ".join(["?"] * len(reordered_ids))
+            parameters.extend([table_id, *reordered_ids])
+            conn.execute(
+                f"""
+                UPDATE {table_name}
+                SET position = CASE {id_column} {' '.join(case_clauses)} ELSE position END
+                WHERE table_id = ? AND {id_column} IN ({in_clause})
+                """,
+                parameters,
+            )
 
     def set_cell_completed(self, row_id: int, column_id: int, completed: bool) -> TableCell:
         value = 1 if completed else 0

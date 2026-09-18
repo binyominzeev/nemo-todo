@@ -7,6 +7,8 @@ EXT_DIR="${HOME}/.local/share/nemo-python/extensions"
 SRC_DIR="${INSTALL_HOME}/src"
 
 mkdir -p "${SRC_DIR}" "${EXT_DIR}" "${HOME}/.local/share/nemo-todo"
+rm -rf "${SRC_DIR}"
+mkdir -p "${SRC_DIR}"
 cp -r "${REPO_ROOT}/src/." "${SRC_DIR}/"
 
 cat > "${EXT_DIR}/nemo_todo.py" <<PY

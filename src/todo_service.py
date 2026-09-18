@@ -110,8 +110,18 @@ class TodoService:
             for task_id in existing_ids:
                 if task_id not in seen:
                     reordered_ids.append(task_id)
+            case_clauses = []
+            parameters = []
             for index, task_id in enumerate(reordered_ids, start=1):
-                conn.execute(
-                    "UPDATE tasks SET position = ? WHERE id = ? AND folder_id = ?",
-                    (index, task_id, folder_id),
-                )
+                case_clauses.append("WHEN ? THEN ?")
+                parameters.extend([task_id, index])
+            in_clause = ", ".join(["?"] * len(reordered_ids))
+            parameters.extend([folder_id, *reordered_ids])
+            conn.execute(
+                f"""
+                UPDATE tasks
+                SET position = CASE id {' '.join(case_clauses)} ELSE position END
+                WHERE folder_id = ? AND id IN ({in_clause})
+                """,
+                parameters,
+            )

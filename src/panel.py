@@ -91,6 +91,12 @@ class TodoPanel:
         return False
 
     def _clear_box(self, box):
+        if isinstance(box, Gtk.ListBox):
+            row = box.get_row_at_index(0)
+            while row is not None:
+                box.remove(row)
+                row = box.get_row_at_index(0)
+            return
         for child in box.get_children():
             box.remove(child)
 
@@ -198,6 +204,7 @@ class TodoPanel:
         if not text.strip():
             return
         self.table_service.create_row(table_id, text)
+        entry.set_text("")
         self.reload()
 
     def _add_column(self, entry, table_id):
@@ -205,6 +212,7 @@ class TodoPanel:
         if not text.strip():
             return
         self.table_service.create_column(table_id, text)
+        entry.set_text("")
         self.reload()
 
     def _toggle_cell(self, checkbox, row_id, column_id):
