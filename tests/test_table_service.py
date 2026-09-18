@@ -87,6 +87,15 @@ class TableServiceTests(unittest.TestCase):
         self.assertEqual([col3.id, col1.id, col2.id], [c.id for c in snapshot.columns])
         self.assertEqual([1, 2, 3], [c.position for c in snapshot.columns])
 
+    def test_rejects_cross_table_cells(self):
+        table1 = self.service.create_table(self.folder, "t1")
+        table2 = self.service.create_table(self.folder, "t2")
+        row = self.service.create_row(table1.id, "r1")
+        col = self.service.create_column(table2.id, "c1")
+
+        with self.assertRaises(ValueError):
+            self.service.set_cell_completed(row.id, col.id, True)
+
 
 if __name__ == "__main__":
     unittest.main()

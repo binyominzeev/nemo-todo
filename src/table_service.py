@@ -198,6 +198,14 @@ class TableService:
     def set_cell_completed(self, row_id: int, column_id: int, completed: bool) -> TableCell:
         value = 1 if completed else 0
         with self.database.connect() as conn:
+            row_table = conn.execute(
+                "SELECT table_id FROM table_rows WHERE id = ?", (row_id,)
+            ).fetchone()
+            col_table = conn.execute(
+                "SELECT table_id FROM table_columns WHERE id = ?", (column_id,)
+            ).fetchone()
+            if row_table is None or col_table is None or row_table["table_id"] != col_table["table_id"]:
+                raise ValueError("Row and column must exist and belong to the same table")
             conn.execute(
                 """
                 INSERT INTO table_cells(row_id, column_id, completed)

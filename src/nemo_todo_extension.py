@@ -54,7 +54,7 @@ if GObject is not None and Nemo is not None:
 
         def get_background_items(self, window, current_folder):
             if current_folder is None:
-                return
+                return []
             folder_path = None
             try:
                 folder_path = normalize_folder_path(current_folder.get_uri())
@@ -81,10 +81,10 @@ if GObject is not None and Nemo is not None:
 
         def get_file_items(self, window, files):
             if not files:
-                return
+                return []
             folder_path = self._folder_from_selected_files(files)
             if not folder_path:
-                return
+                return []
             add_item = Nemo.MenuItem(
                 name="NemoTodo::AddTodoFile",
                 label="Add TODO",
