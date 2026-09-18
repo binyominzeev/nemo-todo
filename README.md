@@ -1,13 +1,14 @@
 # nemo-todo
 
-`nemo-todo` is a local-only Nemo file manager extension for Linux Mint that adds a lightweight right-side TODO/checklist panel bound to the current folder.
+`nemo-todo` is a local-only Nemo file manager extension for Linux Mint that adds a lightweight floating TODO/checklist window bound to the current folder.
 
 ## Features
 
-- Right-side folder-aware panel for TODOs and checklist tables
+- Folder-aware floating TODO/checklist window
 - Per-folder context using the current Nemo location
 - Fast inline TODO create/edit/toggle/delete
 - Checklist tables with rows, columns, and boolean cells
+- Scrollable checklist workspace with table and card views
 - SQLite persistence at `~/.local/share/nemo-todo/todo.db`
 - Nemo context menu actions: **Add TODO** and **Toggle TODO Panel**
 - Keyboard toggle in panel: `Ctrl+Alt+T`
@@ -43,11 +44,12 @@ Uninstall keeps your database by default.
 ## Usage
 
 1. Open Nemo and browse to any folder.
-2. Open/toggle panel via Nemo context menu (**Toggle TODO Panel**).
-3. Add TODO quickly with `+ New TODO` and press Enter.
+2. Use the context menu (**Toggle TODO Panel**) to show or hide the separate TODO window.
+3. Use the top-bar **New TODO** or **New table** command to add an item for the current folder.
 4. Edit TODO text inline; toggle completion via checkbox.
-5. Add checklist tables with `+ New table`.
-6. Add rows/columns inside each table; toggle cells by clicking checkboxes.
+5. Switch all checklist tables between the compact table view and the card view.
+6. Rename or delete a checklist table inline.
+7. Add, rename, or delete rows and columns inside each table; toggle cells by clicking checkboxes.
 
 Folder changes in Nemo refresh panel data to the exact new folder.
 

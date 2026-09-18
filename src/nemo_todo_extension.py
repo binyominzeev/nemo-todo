@@ -12,20 +12,22 @@ try:
     import gi
 
     gi.require_version("Nemo", "3.0")
-    from gi.repository import GObject, Nemo
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import GObject, Gtk, Nemo
 except Exception:  # pragma: no cover
     GObject = None
     Nemo = None
 
 
 class _WindowState:
-    def __init__(self, panel: TodoPanel):
+    def __init__(self, panel: TodoPanel, todo_window):
         self.panel = panel
+        self.todo_window = todo_window
 
 
 if GObject is not None and Nemo is not None:
 
-    class NemoTodoExtension(GObject.GObject, Nemo.LocationWidgetProvider, Nemo.MenuProvider, Nemo.NameAndDescProvider):
+    class NemoTodoExtension(GObject.GObject, Nemo.MenuProvider, Nemo.NameAndDescProvider):
         def __init__(self):
             super().__init__()
             self.database = Database()
@@ -37,20 +39,6 @@ if GObject is not None and Nemo is not None:
         def get_name_and_desc(self):
             return ("Nemo TODO", "Folder-aware TODO and checklist panel")
 
-        def get_widget(self, uri, window):
-            try:
-                state = self.window_states.get(window)
-                if state is None:
-                    panel = TodoPanel(self.todo_service, self.table_service)
-                    state = _WindowState(panel)
-                    self.window_states[window] = state
-                folder_path = self._uri_to_path(uri)
-                state.panel.set_folder(folder_path)
-                return state.panel.widget()
-            except Exception:  # pragma: no cover
-                logger.exception("Failed to build Nemo TODO panel")
-                return None
-
         def get_background_items(self, window, current_folder):
             if current_folder is None:
                 return []
@@ -59,6 +47,10 @@ if GObject is not None and Nemo is not None:
                 folder_path = normalize_folder_path(current_folder.get_uri())
             except Exception:
                 logger.exception("Unable to resolve current folder from Nemo")
+
+            state = self._get_or_create_state(window)
+            if folder_path:
+                state.panel.set_folder(folder_path)
 
             toggle_item = Nemo.MenuItem(
                 name="NemoTodo::TogglePanel",
@@ -98,12 +90,36 @@ if GObject is not None and Nemo is not None:
                 state.panel.toggle_visible()
 
         def _add_todo(self, _menu, window, folder_path=None):
-            state = self.window_states.get(window)
+            state = self._get_or_create_state(window)
             target_folder = folder_path or (state.panel.current_folder if state else None)
             if target_folder:
+                state.panel.set_folder(target_folder)
                 self.todo_service.create_task(target_folder, "New TODO")
-            if state:
                 state.panel.reload()
+
+        def _get_or_create_state(self, window):
+            state = self.window_states.get(window)
+            if state is not None:
+                return state
+
+            panel = TodoPanel(self.todo_service, self.table_service)
+            todo_window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+            todo_window.set_title("Nemo TODO")
+            todo_window.set_default_size(TodoPanel.DEFAULT_WIDTH, 700)
+            todo_window.set_transient_for(window)
+            todo_window.set_destroy_with_parent(True)
+            todo_window.add(panel.widget())
+            panel.set_window(todo_window)
+            panel.hide()
+            todo_window.connect("delete-event", self._hide_window, panel)
+            state = _WindowState(panel, todo_window)
+            self.window_states[window] = state
+            return state
+
+        @staticmethod
+        def _hide_window(window, _event, panel):
+            panel.hide()
+            return True
 
         def _uri_to_path(self, uri: str) -> str:
             return normalize_folder_path(uri)
