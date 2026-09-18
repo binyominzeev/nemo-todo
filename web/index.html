@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nemo TODO</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">NEMO TODO</p>
+      <h1>Workspace</h1>
+      <p id="folder" class="folder">No folder selected</p>
+    </div>
+    <div class="header-actions">
+      <button data-action="create-task">+ TODO</button>
+      <button data-action="create-table">+ Checklist</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="section-heading">
+      <div><span class="eyebrow">TODAY</span><h2>Tasks</h2></div>
+      <span id="task-count" class="muted"></span>
+    </section>
+    <section id="tasks" class="tasks"></section>
+
+    <section class="section-heading checklist-heading">
+      <div><span class="eyebrow">TRACKING</span><h2>Checklists</h2></div>
+      <div class="segmented"><button class="active" data-view="table">Table</button><button data-view="cards">Cards</button></div>
+    </section>
+    <section id="tables" class="tables"></section>
+  </main>
+  <div id="error" class="error" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

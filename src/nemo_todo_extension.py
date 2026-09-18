@@ -5,6 +5,7 @@ from .panel import TodoPanel
 from .path_utils import normalize_folder_path
 from .table_service import TableService
 from .todo_service import TodoService
+from .web_panel import WebKit2, WebTodoPanel
 
 logger = logging.getLogger(__name__)
 
@@ -102,10 +103,18 @@ if GObject is not None and Nemo is not None:
             if state is not None:
                 return state
 
-            panel = TodoPanel(self.todo_service, self.table_service)
+            panel_class = WebTodoPanel if WebKit2 is not None else TodoPanel
+            try:
+                panel = panel_class(self.todo_service, self.table_service)
+            except Exception:
+                if panel_class is TodoPanel:
+                    raise
+                logger.exception("Unable to start WebKit TODO panel; using GTK fallback")
+                panel_class = TodoPanel
+                panel = panel_class(self.todo_service, self.table_service)
             todo_window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
             todo_window.set_title("Nemo TODO")
-            todo_window.set_default_size(TodoPanel.DEFAULT_WIDTH, 700)
+            todo_window.set_default_size(panel_class.DEFAULT_WIDTH, 700)
             todo_window.set_transient_for(window)
             todo_window.set_destroy_with_parent(True)
             todo_window.add(panel.widget())

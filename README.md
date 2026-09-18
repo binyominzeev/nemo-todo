@@ -18,6 +18,7 @@
 - Linux Mint + Nemo
 - Python 3
 - GTK 3 (`python3-gi`)
+- WebKitGTK 4.0 (`gir1.2-webkit2-4.0`, `python3-gi`)
 - Nemo Python bindings (`python3-nemo`)
 
 ## Install
@@ -31,6 +32,7 @@ This installs extension files in:
 
 - `~/.local/share/nemo-python/extensions/nemo_todo.py`
 - `~/.local/share/nemo-todo/src/`
+- `~/.local/share/nemo-todo/web/`
 
 ## Uninstall
 
@@ -52,6 +54,10 @@ Uninstall keeps your database by default.
 7. Add, rename, or delete rows and columns inside each table; toggle cells by clicking checkboxes.
 
 Folder changes in Nemo refresh panel data to the exact new folder.
+
+The panel uses a local WebKitGTK frontend for its flexible layout and falls back
+to the GTK implementation if WebKitGTK is unavailable. The frontend never
+accesses SQLite directly; commands go through the Python service bridge.
 
 ## Development
 
