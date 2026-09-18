@@ -83,7 +83,7 @@ class TodoPanel:
         self.container.set_visible(self.visible)
 
     def _on_key_press(self, _widget, event):
-        if event.keyval == Gdk.KEY_t and (event.state & Gdk.ModifierType.CONTROL_MASK) and (
+        if event.keyval in (Gdk.KEY_t, Gdk.KEY_T) and (event.state & Gdk.ModifierType.CONTROL_MASK) and (
             event.state & Gdk.ModifierType.MOD1_MASK
         ):
             self.toggle_visible()

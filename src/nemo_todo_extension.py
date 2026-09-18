@@ -114,14 +114,24 @@ if GObject is not None and Nemo is not None:
 
         def _folder_from_selected_files(self, files) -> str | None:
             try:
-                first = files[0]
-                if first.is_directory():
-                    return normalize_folder_path(first.get_uri())
-                parent = first.get_parent_info()
-                if parent is not None:
-                    return normalize_folder_path(parent.get_uri())
+                resolved_folders = set()
+                for file_info in files:
+                    folder = self._folder_for_file_info(file_info)
+                    if not folder:
+                        return None
+                    resolved_folders.add(folder)
+                if len(resolved_folders) == 1:
+                    return next(iter(resolved_folders))
             except Exception:
                 logger.exception("Unable to resolve selected file folder")
+            return None
+
+        def _folder_for_file_info(self, file_info) -> str | None:
+            if file_info.is_directory():
+                return normalize_folder_path(file_info.get_uri())
+            parent = file_info.get_parent_info()
+            if parent is not None:
+                return normalize_folder_path(parent.get_uri())
             return None
 
 else:

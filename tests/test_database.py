@@ -22,7 +22,11 @@ class DatabaseTests(unittest.TestCase):
                         "SELECT name FROM sqlite_master WHERE type='table'"
                     ).fetchall()
                 }
-                self.assertTrue({"folders", "tasks", "tables", "table_rows", "table_columns", "table_cells"}.issubset(tables))
+                self.assertTrue(
+                    {"folders", "tasks", "tables", "table_rows", "table_columns", "table_cells", "schema_migrations"}.issubset(
+                        tables
+                    )
+                )
 
     def test_initialize_rejects_newer_schema(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -45,6 +49,25 @@ class DatabaseTests(unittest.TestCase):
                 self.assertTrue(os.path.exists("todo.db"))
             finally:
                 os.chdir(cwd)
+
+    def test_initialize_upgrades_from_schema_v1(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = os.path.join(tmp, "todo.db")
+            conn = sqlite3.connect(db_path)
+            conn.execute("PRAGMA user_version = 1")
+            conn.execute("CREATE TABLE folders(id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL UNIQUE)")
+            conn.commit()
+            conn.close()
+
+            db = Database(db_path)
+            db.initialize()
+            with db.connect() as check_conn:
+                version = check_conn.execute("PRAGMA user_version").fetchone()[0]
+                self.assertEqual(SCHEMA_VERSION, version)
+                migration_table = check_conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
+                ).fetchone()
+                self.assertIsNotNone(migration_table)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class Database:
@@ -17,8 +17,12 @@ class Database:
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if version == 0:
                 self._apply_schema_v1(conn)
-                conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-            elif version > SCHEMA_VERSION:
+                conn.execute("PRAGMA user_version = 1")
+                version = 1
+            while version < SCHEMA_VERSION:
+                version = self._migrate(conn, version)
+                conn.execute(f"PRAGMA user_version = {version}")
+            if version > SCHEMA_VERSION:
                 raise RuntimeError(
                     f"Database version {version} is newer than supported version {SCHEMA_VERSION}"
                 )
@@ -89,3 +93,17 @@ class Database:
             CREATE INDEX IF NOT EXISTS idx_cells_row_col ON table_cells(row_id, column_id);
             """
         )
+
+    def _migrate(self, conn: sqlite3.Connection, version: int) -> int:
+        if version == 1:
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    version INTEGER PRIMARY KEY,
+                    applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                INSERT OR IGNORE INTO schema_migrations(version) VALUES (2);
+                """
+            )
+            return 2
+        raise RuntimeError(f"No migration path from schema version {version}")
