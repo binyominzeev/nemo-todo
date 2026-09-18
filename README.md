@@ -2,6 +2,9 @@
 
 `nemo-todo` is a local-only Nemo file manager extension for Linux Mint that adds a lightweight floating TODO/checklist window bound to the current folder.
 
+<img width="1794" height="740" alt="Screenshot from 2026-09-18 15-02-02" src="https://github.com/user-attachments/assets/1c636ba2-5a9e-4ab7-a4f0-0715369db67b" />
+
+
 ## Features
 
 - Folder-aware floating TODO/checklist window
