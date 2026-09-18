@@ -14,7 +14,7 @@ def normalize_folder_path(value: str) -> str:
         if parsed.netloc in ("", "localhost"):
             raw_path = unquote(parsed.path)
         else:
-            raw_path = unquote(f"//{parsed.netloc}{parsed.path}")
+            raise ValueError(f"Unsupported non-local file URI authority: {parsed.netloc}")
     else:
         raw_path = value
     if not raw_path:

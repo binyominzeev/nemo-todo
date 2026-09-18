@@ -15,9 +15,9 @@ class PathUtilsTests(unittest.TestCase):
         normalized = normalize_folder_path("file://localhost/tmp/demo")
         self.assertTrue(normalized.endswith("/tmp/demo"))
 
-    def test_normalizes_file_uri_with_remote_authority(self):
-        normalized = normalize_folder_path("file://server/share/demo")
-        self.assertTrue(normalized.endswith("/server/share/demo"))
+    def test_rejects_file_uri_with_remote_authority(self):
+        with self.assertRaises(ValueError):
+            normalize_folder_path("file://server/share/demo")
 
     def test_rejects_non_file_uri(self):
         with self.assertRaises(ValueError):

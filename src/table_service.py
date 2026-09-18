@@ -179,9 +179,15 @@ class TableService:
                 (table_id,),
             ).fetchall()
             existing_ids = [row[id_column] for row in rows]
-            reordered_ids = list(ordered_ids)
+            existing_set = set(existing_ids)
+            reordered_ids = []
+            seen = set()
+            for item_id in ordered_ids:
+                if item_id in existing_set and item_id not in seen:
+                    reordered_ids.append(item_id)
+                    seen.add(item_id)
             for item_id in existing_ids:
-                if item_id not in reordered_ids:
+                if item_id not in seen:
                     reordered_ids.append(item_id)
             for position, item_id in enumerate(reordered_ids, start=1):
                 conn.execute(

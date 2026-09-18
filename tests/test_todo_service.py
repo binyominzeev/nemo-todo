@@ -52,6 +52,20 @@ class TodoServiceTests(unittest.TestCase):
         tasks = self.service.list_tasks(self.folder)
         self.assertEqual([t3.id, t1.id, t2.id], [t.id for t in tasks])
 
+    def test_reorder_ignores_duplicate_and_foreign_ids(self):
+        t1 = self.service.create_task(self.folder, "one")
+        t2 = self.service.create_task(self.folder, "two")
+        t3 = self.service.create_task(self.folder, "three")
+        other_folder = os.path.join(self.tmp.name, "other")
+        os.makedirs(other_folder, exist_ok=True)
+        foreign = self.service.create_task(other_folder, "other")
+
+        self.service.reorder_tasks(self.folder, [t3.id, t3.id, foreign.id, t1.id])
+
+        tasks = self.service.list_tasks(self.folder)
+        self.assertEqual([t3.id, t1.id, t2.id], [t.id for t in tasks])
+        self.assertEqual([1, 2, 3], [t.position for t in tasks])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -65,6 +65,28 @@ class TableServiceTests(unittest.TestCase):
         self.assertEqual([row3.id, row1.id, row2.id], [r.id for r in snapshot.rows])
         self.assertEqual([col3.id, col1.id, col2.id], [c.id for c in snapshot.columns])
 
+    def test_reorder_ignores_duplicate_and_foreign_ids(self):
+        table = self.service.create_table(self.folder, "Checklist")
+        row1 = self.service.create_row(table.id, "r1")
+        row2 = self.service.create_row(table.id, "r2")
+        row3 = self.service.create_row(table.id, "r3")
+        col1 = self.service.create_column(table.id, "c1")
+        col2 = self.service.create_column(table.id, "c2")
+        col3 = self.service.create_column(table.id, "c3")
+
+        table2 = self.service.create_table(self.folder, "Other")
+        foreign_row = self.service.create_row(table2.id, "fr")
+        foreign_col = self.service.create_column(table2.id, "fc")
+
+        self.service.reorder_rows(table.id, [row3.id, row3.id, foreign_row.id, row1.id])
+        self.service.reorder_columns(table.id, [col3.id, col3.id, foreign_col.id, col1.id])
+
+        snapshot = self.service.list_tables(self.folder)[0]
+        self.assertEqual([row3.id, row1.id, row2.id], [r.id for r in snapshot.rows])
+        self.assertEqual([1, 2, 3], [r.position for r in snapshot.rows])
+        self.assertEqual([col3.id, col1.id, col2.id], [c.id for c in snapshot.columns])
+        self.assertEqual([1, 2, 3], [c.position for c in snapshot.columns])
+
 
 if __name__ == "__main__":
     unittest.main()

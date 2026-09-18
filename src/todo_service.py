@@ -100,9 +100,15 @@ class TodoService:
                 "SELECT id FROM tasks WHERE folder_id = ? ORDER BY position ASC, id ASC", (folder_id,)
             ).fetchall()
             existing_ids = [row["id"] for row in existing]
-            reordered_ids = list(ordered_task_ids)
+            existing_set = set(existing_ids)
+            reordered_ids = []
+            seen = set()
+            for task_id in ordered_task_ids:
+                if task_id in existing_set and task_id not in seen:
+                    reordered_ids.append(task_id)
+                    seen.add(task_id)
             for task_id in existing_ids:
-                if task_id not in reordered_ids:
+                if task_id not in seen:
                     reordered_ids.append(task_id)
             for index, task_id in enumerate(reordered_ids, start=1):
                 conn.execute(

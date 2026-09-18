@@ -73,6 +73,9 @@ if GObject is not None and Nemo is not None:
                 label="Add TODO",
                 tip="Create a TODO for this folder",
             )
+            if not folder_path:
+                return [toggle_item]
+
             add_item.connect("activate", self._add_todo, window, folder_path)
             return [toggle_item, add_item]
 
