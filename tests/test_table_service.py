@@ -1,0 +1,50 @@
+import os
+import tempfile
+import unittest
+
+from src.database import Database
+from src.table_service import TableService
+
+
+class TableServiceTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = Database(os.path.join(self.tmp.name, "todo.db"))
+        self.db.initialize()
+        self.service = TableService(self.db)
+        self.folder = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_create_table_rows_columns_and_toggle_cell(self):
+        table = self.service.create_table(self.folder, "Video")
+        row = self.service.create_row(table.id, "001")
+        col = self.service.create_column(table.id, "Upload")
+
+        toggled = self.service.toggle_cell(row.id, col.id)
+        self.assertTrue(toggled.completed)
+
+        snapshots = self.service.list_tables(self.folder)
+        self.assertEqual(1, len(snapshots))
+        snapshot = snapshots[0]
+        self.assertEqual("Video", snapshot.table.name)
+        self.assertEqual(True, snapshot.cells[(row.id, col.id)])
+
+    def test_reorder_rows_and_columns(self):
+        table = self.service.create_table(self.folder, "Checklist")
+        row1 = self.service.create_row(table.id, "r1")
+        row2 = self.service.create_row(table.id, "r2")
+        col1 = self.service.create_column(table.id, "c1")
+        col2 = self.service.create_column(table.id, "c2")
+
+        self.service.reorder_rows(table.id, [row2.id, row1.id])
+        self.service.reorder_columns(table.id, [col2.id, col1.id])
+
+        snapshot = self.service.list_tables(self.folder)[0]
+        self.assertEqual([row2.id, row1.id], [r.id for r in snapshot.rows])
+        self.assertEqual([col2.id, col1.id], [c.id for c in snapshot.columns])
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,45 @@
+import os
+import tempfile
+import unittest
+
+from src.database import Database
+from src.todo_service import TodoService
+
+
+class TodoServiceTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = Database(os.path.join(self.tmp.name, "todo.db"))
+        self.db.initialize()
+        self.service = TodoService(self.db)
+        self.folder = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_create_toggle_and_order_tasks(self):
+        t1 = self.service.create_task(self.folder, "first")
+        t2 = self.service.create_task(self.folder, "second")
+
+        tasks = self.service.list_tasks(self.folder)
+        self.assertEqual(["first", "second"], [t.text for t in tasks])
+
+        self.service.set_task_completed(t1.id, True)
+        tasks = self.service.list_tasks(self.folder)
+        self.assertTrue(tasks[0].completed)
+
+        self.service.reorder_tasks(self.folder, [t2.id, t1.id])
+        tasks = self.service.list_tasks(self.folder)
+        self.assertEqual([t2.id, t1.id], [t.id for t in tasks])
+
+    def test_delete_reindexes_positions(self):
+        t1 = self.service.create_task(self.folder, "one")
+        t2 = self.service.create_task(self.folder, "two")
+        self.service.delete_task(t1.id)
+        tasks = self.service.list_tasks(self.folder)
+        self.assertEqual([t2.id], [t.id for t in tasks])
+        self.assertEqual(1, tasks[0].position)
+
+
+if __name__ == "__main__":
+    unittest.main()
