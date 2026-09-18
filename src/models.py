@@ -48,4 +48,4 @@ class TableSnapshot:
     table: ChecklistTable
     rows: List[TableRow]
     columns: List[TableColumn]
-    cells: Dict[tuple, bool]
+    cells: Dict[tuple[int, int], bool]

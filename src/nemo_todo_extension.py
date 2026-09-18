@@ -1,5 +1,4 @@
 import logging
-from urllib.parse import urlparse
 
 from .database import Database
 from .panel import TodoPanel
@@ -107,9 +106,6 @@ if GObject is not None and Nemo is not None:
                 state.panel.reload()
 
         def _uri_to_path(self, uri: str) -> str:
-            parsed = urlparse(uri)
-            if parsed.scheme != "file":
-                raise ValueError(f"Unsupported URI: {uri}")
             return normalize_folder_path(uri)
 
         def _folder_from_selected_files(self, files) -> str | None:

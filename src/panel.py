@@ -17,7 +17,6 @@ except Exception:  # pragma: no cover
 
 class TodoPanel:
     DEFAULT_WIDTH = 300
-    TOGGLE_KEY = "<Ctrl><Alt>t"
 
     def __init__(self, todo_service: TodoService, table_service: TableService):
         if Gtk is None:
@@ -31,6 +30,7 @@ class TodoPanel:
         self.container.set_size_request(self.DEFAULT_WIDTH, -1)
         self.container.set_border_width(6)
         self.container.set_hexpand(False)
+        self.container.set_can_focus(True)
 
         self.title = Gtk.Label(label="TODO")
         self.title.set_xalign(0)
@@ -133,8 +133,10 @@ class TodoPanel:
             entry.set_text(task.text)
             entry.connect("activate", self._rename_task, task.id)
 
-            delete_button = Gtk.Button.new_with_label("×")
+            delete_button = Gtk.Button.new_with_label("Delete")
             delete_button.set_tooltip_text("Delete TODO")
+            if delete_button.get_accessible():
+                delete_button.get_accessible().set_name("Delete TODO")
             delete_button.connect("clicked", self._delete_task, task.id)
 
             row.pack_start(checkbox, False, False, 0)
@@ -181,6 +183,10 @@ class TodoPanel:
                     checked = snapshot.cells.get((row.id, column.id), False)
                     cell = Gtk.CheckButton()
                     cell.set_active(checked)
+                    cell_description = f"{row.name} / {column.name}"
+                    cell.set_tooltip_text(cell_description)
+                    if cell.get_accessible():
+                        cell.get_accessible().set_name(cell_description)
                     cell.connect("toggled", self._toggle_cell, row.id, column.id)
                     data_row.pack_start(cell, True, True, 0)
                 vbox.pack_start(data_row, False, False, 0)
