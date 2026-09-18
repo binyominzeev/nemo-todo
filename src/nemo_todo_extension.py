@@ -80,6 +80,8 @@ if GObject is not None and Nemo is not None:
             if not files:
                 return
             folder_path = self._folder_from_selected_files(files)
+            if not folder_path:
+                return
             add_item = Nemo.MenuItem(
                 name="NemoTodo::AddTodoFile",
                 label="Add TODO",

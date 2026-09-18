@@ -128,6 +128,7 @@ class TodoPanel:
             entry.connect("activate", self._rename_task, task.id)
 
             delete_button = Gtk.Button.new_with_label("×")
+            delete_button.set_tooltip_text("Delete TODO")
             delete_button.connect("clicked", self._delete_task, task.id)
 
             row.pack_start(checkbox, False, False, 0)

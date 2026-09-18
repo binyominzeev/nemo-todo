@@ -10,7 +10,13 @@ def normalize_folder_path(value: str) -> str:
     if parsed.scheme and parsed.scheme != "file":
         raise ValueError(f"Unsupported URI scheme: {parsed.scheme}")
 
-    raw_path = unquote(parsed.path) if parsed.scheme == "file" else value
+    if parsed.scheme == "file":
+        if parsed.netloc in ("", "localhost"):
+            raw_path = unquote(parsed.path)
+        else:
+            raw_path = unquote(f"//{parsed.netloc}{parsed.path}")
+    else:
+        raw_path = value
     if not raw_path:
         raise ValueError("Folder path is empty")
 
