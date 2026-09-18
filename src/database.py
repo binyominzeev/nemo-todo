@@ -10,7 +10,9 @@ class Database:
         self.db_path = db_path or str(Path.home() / ".local/share/nemo-todo/todo.db")
 
     def initialize(self) -> None:
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        db_directory = os.path.dirname(self.db_path)
+        if db_directory:
+            os.makedirs(db_directory, exist_ok=True)
         with self.connect() as conn:
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if version == 0:

@@ -35,6 +35,17 @@ class DatabaseTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 db.initialize()
 
+    def test_initialize_supports_relative_db_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                db = Database("todo.db")
+                db.initialize()
+                self.assertTrue(os.path.exists("todo.db"))
+            finally:
+                os.chdir(cwd)
+
 
 if __name__ == "__main__":
     unittest.main()

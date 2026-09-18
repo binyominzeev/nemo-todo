@@ -79,12 +79,13 @@ if GObject is not None and Nemo is not None:
         def get_file_items(self, window, files):
             if not files:
                 return
+            folder_path = self._folder_from_selected_files(files)
             add_item = Nemo.MenuItem(
                 name="NemoTodo::AddTodoFile",
                 label="Add TODO",
                 tip="Create a TODO for this folder",
             )
-            add_item.connect("activate", self._add_todo, window, None)
+            add_item.connect("activate", self._add_todo, window, folder_path)
             return [add_item]
 
         def _toggle_panel(self, _menu, window):
@@ -105,6 +106,18 @@ if GObject is not None and Nemo is not None:
             if parsed.scheme != "file":
                 raise ValueError(f"Unsupported URI: {uri}")
             return normalize_folder_path(uri)
+
+        def _folder_from_selected_files(self, files) -> str | None:
+            try:
+                first = files[0]
+                if first.is_directory():
+                    return normalize_folder_path(first.get_uri())
+                parent = first.get_parent_info()
+                if parent is not None:
+                    return normalize_folder_path(parent.get_uri())
+            except Exception:
+                logger.exception("Unable to resolve selected file folder")
+            return None
 
 else:
 

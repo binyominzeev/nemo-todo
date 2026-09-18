@@ -179,10 +179,11 @@ class TableService:
                 (table_id,),
             ).fetchall()
             existing_ids = [row[id_column] for row in rows]
+            reordered_ids = list(ordered_ids)
             for item_id in existing_ids:
-                if item_id not in ordered_ids:
-                    ordered_ids.append(item_id)
-            for position, item_id in enumerate(ordered_ids, start=1):
+                if item_id not in reordered_ids:
+                    reordered_ids.append(item_id)
+            for position, item_id in enumerate(reordered_ids, start=1):
                 conn.execute(
                     f"UPDATE {table_name} SET position = ? WHERE {id_column} = ? AND table_id = ?",
                     (position, item_id, table_id),

@@ -45,6 +45,26 @@ class TableServiceTests(unittest.TestCase):
         self.assertEqual([row2.id, row1.id], [r.id for r in snapshot.rows])
         self.assertEqual([col2.id, col1.id], [c.id for c in snapshot.columns])
 
+    def test_partial_reorder_does_not_mutate_input(self):
+        table = self.service.create_table(self.folder, "Checklist")
+        row1 = self.service.create_row(table.id, "r1")
+        row2 = self.service.create_row(table.id, "r2")
+        row3 = self.service.create_row(table.id, "r3")
+        col1 = self.service.create_column(table.id, "c1")
+        col2 = self.service.create_column(table.id, "c2")
+        col3 = self.service.create_column(table.id, "c3")
+
+        row_order = [row3.id]
+        col_order = [col3.id]
+        self.service.reorder_rows(table.id, row_order)
+        self.service.reorder_columns(table.id, col_order)
+
+        self.assertEqual([row3.id], row_order)
+        self.assertEqual([col3.id], col_order)
+        snapshot = self.service.list_tables(self.folder)[0]
+        self.assertEqual([row3.id, row1.id, row2.id], [r.id for r in snapshot.rows])
+        self.assertEqual([col3.id, col1.id, col2.id], [c.id for c in snapshot.columns])
+
 
 if __name__ == "__main__":
     unittest.main()

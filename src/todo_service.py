@@ -100,10 +100,11 @@ class TodoService:
                 "SELECT id FROM tasks WHERE folder_id = ? ORDER BY position ASC, id ASC", (folder_id,)
             ).fetchall()
             existing_ids = [row["id"] for row in existing]
+            reordered_ids = list(ordered_task_ids)
             for task_id in existing_ids:
-                if task_id not in ordered_task_ids:
-                    ordered_task_ids.append(task_id)
-            for index, task_id in enumerate(ordered_task_ids, start=1):
+                if task_id not in reordered_ids:
+                    reordered_ids.append(task_id)
+            for index, task_id in enumerate(reordered_ids, start=1):
                 conn.execute(
                     "UPDATE tasks SET position = ? WHERE id = ? AND folder_id = ?",
                     (index, task_id, folder_id),
