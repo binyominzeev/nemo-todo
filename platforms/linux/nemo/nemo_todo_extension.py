@@ -1,14 +1,19 @@
 import logging
 import os
+from pathlib import Path
 
 from core.nemo_todo_core.database import Database
 from .panel import TodoPanel
 from core.nemo_todo_core.path_utils import normalize_folder_path
 from core.nemo_todo_core.table_service import TableService
 from core.nemo_todo_core.todo_service import TodoService
+from platforms.linux.common.dock_config import dock_hack_enabled
+from platforms.linux.common.dock_geometry import Geometry, compute_dock_geometry
 from .web_panel import WebKit2, WebTodoPanel
 
 logger = logging.getLogger(__name__)
+
+DOCK_CONFIG_PATH = Path.home() / ".config" / "nemo-todo" / "nemo.json"
 
 try:
     import gi
@@ -25,9 +30,13 @@ except Exception:  # pragma: no cover
 
 
 class _WindowState:
-    def __init__(self, panel: TodoPanel, todo_window):
+    def __init__(self, panel: TodoPanel, todo_window, panel_width: int):
         self.panel = panel
         self.todo_window = todo_window
+        self.panel_width = panel_width
+        self.last_nemo_height = None
+        self.last_nemo_position = None
+        self.last_todo_size = None
 
 
 if GObject is not None and Nemo is not None:
@@ -134,9 +143,62 @@ if GObject is not None and Nemo is not None:
             panel.hide()
             todo_window.connect("key-press-event", self._on_todo_window_key_press, window)
             todo_window.connect("delete-event", self._hide_window, panel)
-            state = _WindowState(panel, todo_window)
+            state = _WindowState(panel, todo_window, panel_class.DEFAULT_WIDTH)
             self.window_states[window] = state
+            if dock_hack_enabled(DOCK_CONFIG_PATH):
+                if Gdk is not None:
+                    # Static gravity anchors the client area, not the decorated frame, so repeated
+                    # move/resize calls don't drift the window as its height changes.
+                    window.set_gravity(Gdk.Gravity.STATIC)
+                    todo_window.set_gravity(Gdk.Gravity.STATIC)
+                window.connect("configure-event", self._on_nemo_window_configured, state)
+                todo_window.connect("configure-event", self._on_todo_window_configured, window, state)
+                self._reposition_todo_window(window, state)
             return state
+
+        def _on_nemo_window_configured(self, nemo_window, _event, state):
+            self._reposition_todo_window(nemo_window, state)
+            return False
+
+        def _reposition_todo_window(self, nemo_window, state):
+            """Follows Nemo's position; mirrors height only when Nemo itself changed size."""
+            position = nemo_window.get_position()
+            size = nemo_window.get_size()
+            nemo_height_changed = state.last_nemo_height is None or size[1] != state.last_nemo_height
+            state.last_nemo_height = size[1]
+            height = size[1] if nemo_height_changed else (state.last_todo_size[1] if state.last_todo_size else size[1])
+
+            nemo_moved = state.last_nemo_position is None or position != state.last_nemo_position
+            state.last_nemo_position = position
+
+            screen = nemo_window.get_screen()
+            screen_width = screen.get_width() if screen is not None else position[0] + size[0] + state.panel_width
+            target = Geometry(x=position[0], y=position[1], width=size[0], height=size[1])
+            dock = compute_dock_geometry(target, state.panel_width, screen_width)
+            # Only follow Nemo's position when it actually moved, otherwise a height-only
+            # mirror (triggered by the panel's own resize) would snap the panel back to
+            # Nemo's unchanged y and fight the user's in-progress drag.
+            if nemo_moved:
+                state.todo_window.move(dock.x, dock.y)
+            state.todo_window.resize(dock.width, height)
+            state.last_todo_size = (dock.width, height)
+
+        def _on_todo_window_configured(self, todo_window, _event, nemo_window, state):
+            """Manual panel resize: keep the width, mirror the height onto the Nemo window."""
+            width, height = todo_window.get_size()
+            if state.last_todo_size == (width, height):
+                return False
+            state.panel_width = width
+            state.last_todo_size = (width, height)
+            self._mirror_height_to_nemo(nemo_window, height)
+            return False
+
+        @staticmethod
+        def _mirror_height_to_nemo(nemo_window, height):
+            width, current_height = nemo_window.get_size()
+            if height == current_height:
+                return
+            nemo_window.resize(width, height)
 
         @staticmethod
         def _hide_window(window, _event, panel):

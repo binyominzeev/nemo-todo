@@ -11,17 +11,23 @@ from core.nemo_todo_core.database import Database
 from core.nemo_todo_core.path_utils import normalize_folder_path
 from core.nemo_todo_core.table_service import TableService
 from core.nemo_todo_core.todo_service import TodoService
+from platforms.linux.common.dock_config import dock_hack_enabled
+from platforms.linux.dolphin import x11_dock
 
 logger = logging.getLogger(__name__)
+
+DOCK_CONFIG_PATH = Path.home() / ".config" / "nemo-todo" / "dolphin.json"
 
 try:
     import gi
 
+    gi.require_version("Gdk", "3.0")
     gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
+    from gi.repository import Gdk, Gtk
     from platforms.linux.nemo.panel import TodoPanel
     from platforms.linux.nemo.web_panel import WebKit2, WebTodoPanel
 except Exception:  # pragma: no cover
+    Gdk = None
     Gtk = None
     TodoPanel = None
     WebKit2 = None
@@ -64,9 +70,33 @@ def run(folder_value: str) -> int:
     panel.set_window(window)
     panel.set_folder(folder)
     window.connect("destroy", Gtk.main_quit)
+    tracker = _setup_dock_hack(window, panel.DEFAULT_WIDTH)
     window.show_all()
     Gtk.main()
+    if tracker is not None:
+        tracker.stop()
     return 0
+
+
+def _setup_dock_hack(window, panel_width: int):
+    """Best-effort: snap the panel beside the active Dolphin window on X11/XWayland."""
+    if not dock_hack_enabled(DOCK_CONFIG_PATH):
+        return None
+
+    display = x11_dock.open_display()
+    if display is None:
+        return None
+
+    dolphin_window = x11_dock.find_active_dolphin_window(display)
+    if dolphin_window is None:
+        display.close()
+        return None
+
+    tracker = x11_dock.DockTracker(display, dolphin_window, window, panel_width, on_closed=Gtk.main_quit)
+    window.set_gravity(Gdk.Gravity.STATIC)
+    window.connect("realize", lambda _widget: tracker.reposition())
+    tracker.start()
+    return tracker
 
 
 def main() -> int:

@@ -12,7 +12,7 @@
 - **macOS / Finder:** placeholder only
 - **Windows / File Explorer:** placeholder only
 
-The Dolphin version is intentionally not a docked Dolphin sidebar. A docked panel would require a separate, deeper Dolphin/KDE plugin project.
+The Dolphin version is intentionally not a docked Dolphin sidebar (that would require a separate, deeper Dolphin/KDE plugin project). Instead, on X11/XWayland sessions it uses a "docking hack": the floating panel snaps to the right edge of the active Dolphin window and follows it as it is moved, resized, or closed. Both the Nemo panel and the Dolphin panel support this; see **Docking hack** below for details and limitations.
 
 ## Features
 
@@ -83,6 +83,7 @@ Requirements:
 - GTK 3 (`python3-gi`)
 - WebKitGTK 4.0 for the web UI, with a GTK fallback
 - Dolphin/KDE service-menu support
+- `python3-xlib` (optional; enables the docking hack described below)
 
 Install it with:
 
@@ -97,6 +98,17 @@ Then right-click the background of a Dolphin folder and select **Open TODO panel
 ```
 
 The Dolphin launcher accepts a local path or `file://` URI and uses the same SQLite database and folder-aware services as the Nemo integration.
+
+## Docking hack
+
+Neither Nemo nor Dolphin can host a foreign GTK widget inside their own window, so the panel is always a separate top-level window. To make it feel attached, the panel repositions itself next to the file manager window instead of floating independently:
+
+- **Nemo:** uses native GTK signals on the actual Nemo window (`configure-event`), so it works under both X11 and Wayland. Toggle it with `~/.config/nemo-todo/nemo.json` (`{"dock_hack_enabled": false}` to disable).
+- **Dolphin:** Dolphin runs in a separate process, so the launcher locates the active Dolphin window over X11 (via `python3-xlib`) and follows its move/resize/close events. This only works on X11 or XWayland; under a native Wayland session it silently falls back to a plain floating window. Toggle it with `~/.config/nemo-todo/dolphin.json`.
+
+In both cases the panel snaps to the right edge of the file manager window, or the left edge if the right side would run off the screen. This is a heuristic, not a true embedded panel: with multiple Dolphin windows open, the launcher targets whichever one was active when the service menu action ran.
+
+The panel's width is "sticky": resize it by hand and that width is kept on future moves of the file manager window. Height is treated as one shared dimension between the two windows, so resizing either one's height resizes the other to match, as if they were a single docked window.
 
 ## Usage
 
