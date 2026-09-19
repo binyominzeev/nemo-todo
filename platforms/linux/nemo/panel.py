@@ -1,7 +1,7 @@
 import logging
 
-from .table_service import TableService
-from .todo_service import TodoService
+from core.nemo_todo_core.table_service import TableService
+from core.nemo_todo_core.todo_service import TodoService
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +106,6 @@ class TodoPanel:
 
         self._install_css()
 
-        self.container.add_events(Gdk.EventMask.KEY_PRESS_MASK)
-        self.container.connect("key-press-event", self._on_key_press)
 
     def widget(self):
         return self.container
@@ -187,14 +185,6 @@ class TodoPanel:
                 window.show_all()
             else:
                 window.hide()
-
-    def _on_key_press(self, _widget, event):
-        if event.keyval in (Gdk.KEY_t, Gdk.KEY_T) and (event.state & Gdk.ModifierType.CONTROL_MASK) and (
-            event.state & Gdk.ModifierType.MOD1_MASK
-        ):
-            self.toggle_visible()
-            return True
-        return False
 
     def _clear_box(self, box):
         if isinstance(box, Gtk.ListBox):

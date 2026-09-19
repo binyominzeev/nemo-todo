@@ -2,8 +2,8 @@ import os
 import tempfile
 import unittest
 
-from src.database import Database
-from src.table_service import TableService
+from core.nemo_todo_core.database import Database
+from core.nemo_todo_core.table_service import TableService
 
 
 class TableServiceTests(unittest.TestCase):

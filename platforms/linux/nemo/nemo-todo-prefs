@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+
+import runpy
+
+runpy.run_path("/home/bz/.local/share/nemo-todo/src/nemo-todo-prefs.py", run_name="__main__")

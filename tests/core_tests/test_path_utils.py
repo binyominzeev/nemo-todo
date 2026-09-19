@@ -1,6 +1,6 @@
 import unittest
 
-from src.path_utils import normalize_folder_path
+from core.nemo_todo_core.path_utils import normalize_folder_path
 
 
 class PathUtilsTests(unittest.TestCase):

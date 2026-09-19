@@ -2,8 +2,8 @@ import os
 import tempfile
 import unittest
 
-from src.database import Database
-from src.todo_service import TodoService
+from core.nemo_todo_core.database import Database
+from core.nemo_todo_core.todo_service import TodoService
 
 
 class TodoServiceTests(unittest.TestCase):

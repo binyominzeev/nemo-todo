@@ -3,7 +3,7 @@ import sqlite3
 import tempfile
 import unittest
 
-from src.database import Database, SCHEMA_VERSION
+from core.nemo_todo_core.database import Database, SCHEMA_VERSION
 
 
 class DatabaseTests(unittest.TestCase):

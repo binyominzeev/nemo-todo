@@ -1,10 +1,11 @@
 import logging
+import os
 
-from .database import Database
+from core.nemo_todo_core.database import Database
 from .panel import TodoPanel
-from .path_utils import normalize_folder_path
-from .table_service import TableService
-from .todo_service import TodoService
+from core.nemo_todo_core.path_utils import normalize_folder_path
+from core.nemo_todo_core.table_service import TableService
+from core.nemo_todo_core.todo_service import TodoService
 from .web_panel import WebKit2, WebTodoPanel
 
 logger = logging.getLogger(__name__)
@@ -12,10 +13,13 @@ logger = logging.getLogger(__name__)
 try:
     import gi
 
+    gi.require_version("Gdk", "3.0")
     gi.require_version("Nemo", "3.0")
     gi.require_version("Gtk", "3.0")
-    from gi.repository import GObject, Gtk, Nemo
+    from gi.repository import Gdk, Gio, GObject, Gtk, Nemo
 except Exception:  # pragma: no cover
+    Gdk = None
+    Gio = None
     GObject = None
     Nemo = None
 
@@ -28,17 +32,22 @@ class _WindowState:
 
 if GObject is not None and Nemo is not None:
 
-    class NemoTodoExtension(GObject.GObject, Nemo.MenuProvider, Nemo.NameAndDescProvider):
+    class NemoTodoExtension(
+        GObject.GObject, Nemo.MenuProvider, Nemo.LocationWidgetProvider, Nemo.NameAndDescProvider
+    ):
         def __init__(self):
             super().__init__()
+            self.settings = Gio.Settings.new("org.nemo.extensions.nemo-todo")
             self.database = Database()
             self.database.initialize()
             self.todo_service = TodoService(self.database)
             self.table_service = TableService(self.database)
             self.window_states = {}
+            self.key_windows = set()
 
         def get_name_and_desc(self):
-            return ("Nemo TODO", "Folder-aware TODO and checklist panel")
+            preferences = os.path.expanduser("~/.local/share/nemo-todo/platforms/linux/nemo/nemo-todo-prefs")
+            return [(f"nemo-todo:::Folder-aware TODO and checklist panel:::{preferences}")]
 
         def get_background_items(self, window, current_folder):
             if current_folder is None:
@@ -60,48 +69,51 @@ if GObject is not None and Nemo is not None:
             )
             toggle_item.connect("activate", self._toggle_panel, window)
 
-            add_item = Nemo.MenuItem(
-                name="NemoTodo::AddTodo",
-                label="Add TODO",
-                tip="Create a TODO for this folder",
-            )
-            if not folder_path:
-                return [toggle_item]
+            return [toggle_item]
 
-            add_item.connect("activate", self._add_todo, window, folder_path)
-            return [toggle_item, add_item]
+        def get_widget(self, _uri, window):
+            self._ensure_window_key_handler(window)
+            widget = Gtk.EventBox()
+            widget.set_no_show_all(True)
+            widget.hide()
+            return widget
 
         def get_file_items(self, window, files):
-            if not files:
-                return []
-            folder_path = self._folder_from_selected_files(files)
-            if not folder_path:
-                return []
-            add_item = Nemo.MenuItem(
-                name="NemoTodo::AddTodoFile",
-                label="Add TODO",
-                tip="Create a TODO for this folder",
-            )
-            add_item.connect("activate", self._add_todo, window, folder_path)
-            return [add_item]
+            return []
 
         def _toggle_panel(self, _menu, window):
             state = self.window_states.get(window)
             if state:
                 state.panel.toggle_visible()
 
-        def _add_todo(self, _menu, window, folder_path=None):
+        def _on_window_key_press(self, window, event):
+            accelerator = self.settings.get_string("panel-hotkey")
+            keyval, modifiers = Gtk.accelerator_parse(accelerator)
+            if not keyval:
+                return False
+
+            mask = Gtk.accelerator_get_default_mod_mask()
+            if event.keyval != keyval or (event.state & mask) != (modifiers & mask):
+                return False
+
             state = self._get_or_create_state(window)
-            target_folder = folder_path or (state.panel.current_folder if state else None)
-            if target_folder:
-                state.panel.set_folder(target_folder)
-                self.todo_service.create_task(target_folder, "New TODO")
-                state.panel.reload()
+            state.panel.toggle_visible()
+            return True
+
+        def _on_todo_window_key_press(self, _todo_window, event, nemo_window):
+            return self._on_window_key_press(nemo_window, event)
+
+        def _ensure_window_key_handler(self, window):
+            if window not in self.key_windows:
+                window.connect("key-press-event", self._on_window_key_press)
+                self.key_windows.add(window)
 
         def _get_or_create_state(self, window):
             state = self.window_states.get(window)
             if state is not None:
                 return state
+
+            self._ensure_window_key_handler(window)
 
             panel_class = WebTodoPanel if WebKit2 is not None else TodoPanel
             try:
@@ -120,6 +132,7 @@ if GObject is not None and Nemo is not None:
             todo_window.add(panel.widget())
             panel.set_window(todo_window)
             panel.hide()
+            todo_window.connect("key-press-event", self._on_todo_window_key_press, window)
             todo_window.connect("delete-event", self._hide_window, panel)
             state = _WindowState(panel, todo_window)
             self.window_states[window] = state

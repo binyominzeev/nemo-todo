@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.nemo.extensions.nemo-todo" path="/org/nemo/extensions/nemo-todo/">
+    <key name="panel-hotkey" type="s">
+      <default>"&lt;Control&gt;&lt;Alt&gt;t"</default>
+      <summary>TODO panel shortcut</summary>
+      <description>Keyboard shortcut used to show or hide the TODO panel in Nemo.</description>
+    </key>
+  </schema>
+</schemalist>

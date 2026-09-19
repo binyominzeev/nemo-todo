@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 
-from .todo_bridge import TodoBridge, TodoBridgeError
+from core.nemo_todo_core.todo_bridge import TodoBridge, TodoBridgeError
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class WebTodoPanel:
         self.webview.get_settings().set_property("enable-javascript", True)
         self.webview.connect("load-changed", self._on_load_changed)
 
-        web_root = Path(__file__).resolve().parent.parent / "web"
+        web_root = Path(__file__).resolve().parents[3] / "frontend"
         self.webview.load_uri(GLib.filename_to_uri(str(web_root / "index.html"), None))
 
     def widget(self):
