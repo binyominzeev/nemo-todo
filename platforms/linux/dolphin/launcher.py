@@ -12,11 +12,13 @@ from core.nemo_todo_core.path_utils import normalize_folder_path
 from core.nemo_todo_core.table_service import TableService
 from core.nemo_todo_core.todo_service import TodoService
 from platforms.linux.common.dock_config import dock_hack_enabled
+from platforms.linux.common.panel_state import load_panel_width, save_panel_width
 from platforms.linux.dolphin import x11_dock
 
 logger = logging.getLogger(__name__)
 
 DOCK_CONFIG_PATH = Path.home() / ".config" / "nemo-todo" / "dolphin.json"
+PANEL_STATE_PATH = Path.home() / ".config" / "nemo-todo" / "dolphin_panel_width.json"
 
 try:
     import gi
@@ -65,17 +67,32 @@ def run(folder_value: str) -> int:
 
     window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
     window.set_title("Nemo TODO")
-    window.set_default_size(panel.DEFAULT_WIDTH, 700)
+    initial_width = load_panel_width(PANEL_STATE_PATH, panel.DEFAULT_WIDTH)
+    window.set_default_size(initial_width, 700)
     window.add(panel.widget())
     panel.set_window(window)
     panel.set_folder(folder)
     window.connect("destroy", Gtk.main_quit)
-    tracker = _setup_dock_hack(window, panel.DEFAULT_WIDTH)
+    window.connect("configure-event", _make_width_persister(initial_width))
+    tracker = _setup_dock_hack(window, initial_width)
     window.show_all()
     Gtk.main()
     if tracker is not None:
         tracker.stop()
     return 0
+
+
+def _make_width_persister(initial_width: int):
+    last_width = {"value": initial_width}
+
+    def _on_configure(widget, _event):
+        width, _height = widget.get_size()
+        if width != last_width["value"]:
+            last_width["value"] = width
+            save_panel_width(PANEL_STATE_PATH, width)
+        return False
+
+    return _on_configure
 
 
 def _setup_dock_hack(window, panel_width: int):

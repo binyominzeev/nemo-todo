@@ -38,7 +38,10 @@ class TodoBridgeTests(unittest.TestCase):
         state = self.bridge.execute(
             "toggle_cell", {"row_id": row_id, "column_id": column_id, "completed": True}
         )
-        self.assertEqual({"row_id": row_id, "column_id": column_id, "completed": True}, state["tables"][0]["cells"][0])
+        self.assertEqual(
+            {"row_id": row_id, "column_id": column_id, "completed": True, "text_value": ""},
+            state["tables"][0]["cells"][0],
+        )
 
     def test_rejects_unknown_command_and_invalid_payload(self):
         with self.assertRaises(TodoBridgeError):

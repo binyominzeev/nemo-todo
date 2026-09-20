@@ -8,6 +8,7 @@ GSETTINGS_DIR="${HOME}/.local/share/glib-2.0/schemas"
 rm -f "${EXT_FILE}"
 rm -rf "${INSTALL_HOME}/core"
 rm -rf "${INSTALL_HOME}/platforms"
+rm -rf "${INSTALL_HOME}/frontend"
 rm -rf "${INSTALL_HOME}/web"
 rm -f "${GSETTINGS_DIR}/org.nemo.extensions.nemo-todo.gschema.xml"
 if command -v glib-compile-schemas >/dev/null 2>&1 && [[ -d "${GSETTINGS_DIR}" ]]; then

@@ -2,7 +2,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class Database:
@@ -64,6 +64,7 @@ class Database:
                 table_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
                 position INTEGER NOT NULL,
+                type TEXT NOT NULL DEFAULT 'checkbox',
                 FOREIGN KEY(table_id) REFERENCES tables(id) ON DELETE CASCADE
             );
 
@@ -80,6 +81,7 @@ class Database:
                 row_id INTEGER NOT NULL,
                 column_id INTEGER NOT NULL,
                 completed INTEGER NOT NULL DEFAULT 0,
+                text_value TEXT,
                 UNIQUE(row_id, column_id),
                 FOREIGN KEY(row_id) REFERENCES table_rows(id) ON DELETE CASCADE,
                 FOREIGN KEY(column_id) REFERENCES table_columns(id) ON DELETE CASCADE
@@ -106,4 +108,18 @@ class Database:
                 """
             )
             return 2
+        if version == 2:
+            table_names = {
+                row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            }
+            if "table_columns" in table_names:
+                existing_columns = {row[1] for row in conn.execute("PRAGMA table_info(table_columns)")}
+                if "type" not in existing_columns:
+                    conn.execute("ALTER TABLE table_columns ADD COLUMN type TEXT NOT NULL DEFAULT 'checkbox'")
+            if "table_cells" in table_names:
+                existing_cell_columns = {row[1] for row in conn.execute("PRAGMA table_info(table_cells)")}
+                if "text_value" not in existing_cell_columns:
+                    conn.execute("ALTER TABLE table_cells ADD COLUMN text_value TEXT")
+            conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (3)")
+            return 3
         raise RuntimeError(f"No migration path from schema version {version}")

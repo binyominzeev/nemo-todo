@@ -6,7 +6,7 @@ INSTALL_HOME="${HOME}/.local/share/nemo-todo"
 EXT_DIR="${HOME}/.local/share/nemo-python/extensions"
 CORE_DIR="${INSTALL_HOME}/core"
 PLATFORM_DIR="${INSTALL_HOME}/platforms"
-WEB_DIR="${INSTALL_HOME}/web"
+WEB_DIR="${INSTALL_HOME}/frontend"
 GSETTINGS_DIR="${HOME}/.local/share/glib-2.0/schemas"
 
 mkdir -p "${CORE_DIR}" "${PLATFORM_DIR}" "${EXT_DIR}" "${GSETTINGS_DIR}" "${HOME}/.local/share/nemo-todo"

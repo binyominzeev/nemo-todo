@@ -9,11 +9,13 @@ from core.nemo_todo_core.table_service import TableService
 from core.nemo_todo_core.todo_service import TodoService
 from platforms.linux.common.dock_config import dock_hack_enabled
 from platforms.linux.common.dock_geometry import Geometry, compute_dock_geometry
+from platforms.linux.common.panel_state import load_panel_width, save_panel_width
 from .web_panel import WebKit2, WebTodoPanel
 
 logger = logging.getLogger(__name__)
 
 DOCK_CONFIG_PATH = Path.home() / ".config" / "nemo-todo" / "nemo.json"
+PANEL_STATE_PATH = Path.home() / ".config" / "nemo-todo" / "nemo_panel_width.json"
 
 try:
     import gi
@@ -53,6 +55,7 @@ if GObject is not None and Nemo is not None:
             self.table_service = TableService(self.database)
             self.window_states = {}
             self.key_windows = set()
+            self.panel_state_path = PANEL_STATE_PATH
 
         def get_name_and_desc(self):
             preferences = os.path.expanduser("~/.local/share/nemo-todo/platforms/linux/nemo/nemo-todo-prefs")
@@ -93,6 +96,8 @@ if GObject is not None and Nemo is not None:
         def _toggle_panel(self, _menu, window):
             state = self.window_states.get(window)
             if state:
+                # Nemo's geometry may not have been settled yet when the state was first created.
+                self._reposition_todo_window(window, state)
                 state.panel.toggle_visible()
 
         def _on_window_key_press(self, window, event):
@@ -135,7 +140,8 @@ if GObject is not None and Nemo is not None:
                 panel = panel_class(self.todo_service, self.table_service)
             todo_window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
             todo_window.set_title("Nemo TODO")
-            todo_window.set_default_size(panel_class.DEFAULT_WIDTH, 700)
+            initial_width = load_panel_width(self.panel_state_path, panel_class.DEFAULT_WIDTH)
+            todo_window.set_default_size(initial_width, 700)
             todo_window.set_transient_for(window)
             todo_window.set_destroy_with_parent(True)
             todo_window.add(panel.widget())
@@ -143,7 +149,7 @@ if GObject is not None and Nemo is not None:
             panel.hide()
             todo_window.connect("key-press-event", self._on_todo_window_key_press, window)
             todo_window.connect("delete-event", self._hide_window, panel)
-            state = _WindowState(panel, todo_window, panel_class.DEFAULT_WIDTH)
+            state = _WindowState(panel, todo_window, initial_width)
             self.window_states[window] = state
             if dock_hack_enabled(DOCK_CONFIG_PATH):
                 if Gdk is not None:
@@ -190,6 +196,9 @@ if GObject is not None and Nemo is not None:
                 return False
             state.panel_width = width
             state.last_todo_size = (width, height)
+            panel_state_path = getattr(self, "panel_state_path", None)
+            if panel_state_path is not None:
+                save_panel_width(panel_state_path, width)
             self._mirror_height_to_nemo(nemo_window, height)
             return False
 

@@ -61,7 +61,7 @@ This installs the Nemo extension and its runtime files in:
 - `~/.local/share/nemo-python/extensions/nemo_todo.py`
 - `~/.local/share/nemo-todo/core/`
 - `~/.local/share/nemo-todo/platforms/linux/nemo/`
-- `~/.local/share/nemo-todo/web/`
+- `~/.local/share/nemo-todo/frontend/`
 - `~/.local/share/glib-2.0/schemas/org.nemo.extensions.nemo-todo.gschema.xml`
 
 ## Uninstall

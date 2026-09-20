@@ -56,7 +56,9 @@ class TodoBridge:
             "create_column": self._create_column,
             "rename_column": self._rename_column,
             "delete_column": self._delete_column,
+            "update_column_type": self._update_column_type,
             "toggle_cell": self._toggle_cell,
+            "set_cell_text": self._set_cell_text,
         }
         handler = handlers.get(command)
         if handler is None:
@@ -118,13 +120,17 @@ class TodoBridge:
         self.table_service.delete_row(self._required_int(payload, "row_id"))
 
     def _create_column(self, payload):
-        self.table_service.create_column(self._required_int(payload, "table_id"), self._required_text(payload, "name"))
+        column_type = payload.get("type", "checkbox")
+        self.table_service.create_column(self._required_int(payload, "table_id"), self._required_text(payload, "name"), column_type)
 
     def _rename_column(self, payload):
         self.table_service.rename_column(self._required_int(payload, "column_id"), self._required_text(payload, "name"))
 
     def _delete_column(self, payload):
         self.table_service.delete_column(self._required_int(payload, "column_id"))
+
+    def _update_column_type(self, payload):
+        self.table_service.update_column_type(self._required_int(payload, "column_id"), self._required_text(payload, "type"))
 
     def _toggle_cell(self, payload):
         completed = payload.get("completed")
@@ -134,8 +140,17 @@ class TodoBridge:
             self._required_int(payload, "row_id"), self._required_int(payload, "column_id"), completed
         )
 
+    def _set_cell_text(self, payload):
+        text = payload.get("text")
+        if not isinstance(text, str):
+            raise TodoBridgeError("text must be a string")
+        self.table_service.set_cell_text(
+            self._required_int(payload, "row_id"), self._required_int(payload, "column_id"), text
+        )
+
     @staticmethod
     def _serialize_table(snapshot):
+        cell_keys = set(snapshot.cells) | set(snapshot.text_values)
         return {
             "id": snapshot.table.id,
             "name": snapshot.table.name,
@@ -145,11 +160,16 @@ class TodoBridge:
                 for row in snapshot.rows
             ],
             "columns": [
-                {"id": column.id, "name": column.name, "position": column.position}
+                {"id": column.id, "name": column.name, "position": column.position, "type": column.type}
                 for column in snapshot.columns
             ],
             "cells": [
-                {"row_id": row_id, "column_id": column_id, "completed": completed}
-                for (row_id, column_id), completed in snapshot.cells.items()
+                {
+                    "row_id": row_id,
+                    "column_id": column_id,
+                    "completed": snapshot.cells.get((row_id, column_id), False),
+                    "text_value": snapshot.text_values.get((row_id, column_id), ""),
+                }
+                for (row_id, column_id) in cell_keys
             ],
         }

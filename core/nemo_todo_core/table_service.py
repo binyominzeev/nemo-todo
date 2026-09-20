@@ -2,6 +2,8 @@ from .database import Database
 from .models import ChecklistTable, TableCell, TableColumn, TableRow, TableSnapshot
 from .path_utils import normalize_folder_path
 
+COLUMN_TYPES = ("checkbox", "text")
+
 
 class TableService:
     def __init__(self, database: Database):
@@ -53,22 +55,25 @@ class TableService:
             )
         ]
         columns = [
-            TableColumn(c["id"], c["table_id"], c["name"], c["position"])
+            TableColumn(c["id"], c["table_id"], c["name"], c["position"], c["type"])
             for c in conn.execute(
-                "SELECT id, table_id, name, position FROM table_columns WHERE table_id = ? ORDER BY position, id",
+                "SELECT id, table_id, name, position, type FROM table_columns WHERE table_id = ? ORDER BY position, id",
                 (table.id,),
             )
         ]
         cell_rows = conn.execute(
             """
-            SELECT row_id, column_id, completed
+            SELECT row_id, column_id, completed, text_value
             FROM table_cells
             WHERE row_id IN (SELECT id FROM table_rows WHERE table_id = ?)
             """,
             (table.id,),
         ).fetchall()
         cells = {(c["row_id"], c["column_id"]): bool(c["completed"]) for c in cell_rows}
-        return TableSnapshot(table=table, rows=rows, columns=columns, cells=cells)
+        text_values = {
+            (c["row_id"], c["column_id"]): c["text_value"] for c in cell_rows if c["text_value"] is not None
+        }
+        return TableSnapshot(table=table, rows=rows, columns=columns, cells=cells, text_values=text_values)
 
     def rename_table(self, table_id: int, name: str) -> None:
         cleaned = name.strip()
@@ -102,19 +107,21 @@ class TableService:
             )
             return TableRow(cursor.lastrowid, table_id, cleaned, position + 1)
 
-    def create_column(self, table_id: int, name: str) -> TableColumn:
+    def create_column(self, table_id: int, name: str, column_type: str = "checkbox") -> TableColumn:
         cleaned = name.strip()
         if not cleaned:
             raise ValueError("Column name cannot be empty")
+        if column_type not in COLUMN_TYPES:
+            raise ValueError(f"Column type must be one of {COLUMN_TYPES}")
         with self.database.connect() as conn:
             position = conn.execute(
                 "SELECT COALESCE(MAX(position), 0) FROM table_columns WHERE table_id = ?", (table_id,)
             ).fetchone()[0]
             cursor = conn.execute(
-                "INSERT INTO table_columns(table_id, name, position) VALUES(?, ?, ?)",
-                (table_id, cleaned, position + 1),
+                "INSERT INTO table_columns(table_id, name, position, type) VALUES(?, ?, ?, ?)",
+                (table_id, cleaned, position + 1, column_type),
             )
-            return TableColumn(cursor.lastrowid, table_id, cleaned, position + 1)
+            return TableColumn(cursor.lastrowid, table_id, cleaned, position + 1, column_type)
 
     def rename_row(self, row_id: int, name: str) -> None:
         cleaned = name.strip()
@@ -129,6 +136,12 @@ class TableService:
             raise ValueError("Column name cannot be empty")
         with self.database.connect() as conn:
             conn.execute("UPDATE table_columns SET name = ? WHERE id = ?", (cleaned, column_id))
+
+    def update_column_type(self, column_id: int, column_type: str) -> None:
+        if column_type not in COLUMN_TYPES:
+            raise ValueError(f"Column type must be one of {COLUMN_TYPES}")
+        with self.database.connect() as conn:
+            conn.execute("UPDATE table_columns SET type = ? WHERE id = ?", (column_type, column_id))
 
     def delete_row(self, row_id: int) -> None:
         with self.database.connect() as conn:
@@ -235,3 +248,24 @@ class TableService:
             ).fetchone()
         current = bool(row["completed"]) if row else False
         return self.set_cell_completed(row_id, column_id, not current)
+
+    def set_cell_text(self, row_id: int, column_id: int, text: str) -> TableCell:
+        with self.database.connect() as conn:
+            row_table = conn.execute(
+                "SELECT table_id FROM table_rows WHERE id = ?", (row_id,)
+            ).fetchone()
+            col_table = conn.execute(
+                "SELECT table_id FROM table_columns WHERE id = ?", (column_id,)
+            ).fetchone()
+            if row_table is None or col_table is None or row_table["table_id"] != col_table["table_id"]:
+                raise ValueError("Row and column must exist and belong to the same table")
+            conn.execute(
+                """
+                INSERT INTO table_cells(row_id, column_id, text_value)
+                VALUES(?, ?, ?)
+                ON CONFLICT(row_id, column_id)
+                DO UPDATE SET text_value = excluded.text_value
+                """,
+                (row_id, column_id, text),
+            )
+        return TableCell(row_id=row_id, column_id=column_id, completed=False, text_value=text)

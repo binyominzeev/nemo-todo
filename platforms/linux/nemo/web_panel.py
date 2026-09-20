@@ -37,7 +37,11 @@ class WebTodoPanel:
         self.webview = WebKit2.WebView.new_with_user_content_manager(manager)
         self.webview.set_hexpand(True)
         self.webview.set_vexpand(True)
-        self.webview.get_settings().set_property("enable-javascript", True)
+        settings = self.webview.get_settings()
+        settings.set_property("enable-javascript", True)
+        settings.set_property("enable-html5-local-storage", True)
+        settings.set_property("allow-file-access-from-file-urls", True)
+        settings.set_property("allow-universal-access-from-file-urls", True)
         self.webview.connect("load-changed", self._on_load_changed)
 
         web_root = Path(__file__).resolve().parents[3] / "frontend"

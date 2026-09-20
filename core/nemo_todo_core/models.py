@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List
 
 
@@ -26,6 +26,7 @@ class TableColumn:
     table_id: int
     name: str
     position: int
+    type: str = "checkbox"
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,7 @@ class TableCell:
     row_id: int
     column_id: int
     completed: bool
+    text_value: str | None = None
 
 
 @dataclass(frozen=True)
@@ -49,3 +51,4 @@ class TableSnapshot:
     rows: List[TableRow]
     columns: List[TableColumn]
     cells: Dict[tuple[int, int], bool]
+    text_values: Dict[tuple[int, int], str] = field(default_factory=dict)
